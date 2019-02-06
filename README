@@ -1,0 +1,20 @@
+Haptic - Zenom Test Software
+
+C13
+C14
+C15 are led for both MCU
+A10 & A11 button for MCU1
+B2 & B3 bitton for MCU2
+
+A10 & B2 turns led on
+A11 & B3 turns led off
+
+UART1 on both mcu send hello word
+
+to compile for MCU1 type:
+	TYPE=MCU1 make
+for MCU2:
+	TYPE=MCU2 make
+
+before opening zenom type
+stty -F /dev/ttyUSB0 115200 raw
