@@ -368,44 +368,50 @@ int main(void)
 
 	while(1)
 	{
-		angle_time++;
-		if(angle_time >= 1){
-			angle = angle + 0.02f;
-			angle_time = 0;
+		if(zenom_msg.stop == 0){
+			angle_time++;
+			if(angle_time >= 1){
+				angle = angle + 0.02f;
+				angle_time = 0;
+			}
+			if(angle >= 180) angle = 0;
+
+			mcu_msg.target1 = sin(angle*3.14/180.0f)*400 + 3150;
+			mcu_msg.target2 = sin(angle*3.14/180.0f)*400 + 3150;
+			mcu_msg.target3 = sin(angle*3.14/180.0f)*400 + 3150;
+
+			mcu_msg.tim1 = timer_get_counter(TIM1);
+			mcu_msg.tim2 = timer_get_counter(TIM2);
+			mcu_msg.tim3 = timer_get_counter(TIM3);
+
+			v_1 = vout_to_dac(pid( mcu_msg.target1, mcu_msg.tim1, &pid1));
+			v_2 = vout_to_dac(pid( mcu_msg.target2, mcu_msg.tim2, &pid2));
+			v_3 = vout_to_dac(pid( mcu_msg.target3, mcu_msg.tim3, &pid3));
+
+			dac_write(CHIP1, CH_V, v_1);
+			dac_write(CHIP2, CH_V, v_2);
+			dac_write(CHIP3, CH_V, v_3);
+			gpio_set(GPIOC, GPIO15);
+
+			mcu_msg.err1 = (uint16_t)(pid1.err*100.0f);
+			mcu_msg.err2 = (uint16_t)(pid2.err*100.0f);
+			mcu_msg.err3 = (uint16_t)(pid3.err*100.0f);
 		}
-		if(angle >= 180) angle = 0;
 
-		mcu_msg.target1 = sin(angle*3.14/180.0f)*400 + 3150;
-		mcu_msg.target2 = sin(angle*3.14/180.0f)*400 + 3150;
-		mcu_msg.target3 = sin(angle*3.14/180.0f)*400 + 3150;
 
-		mcu_msg.tim1 = timer_get_counter(TIM1);
-		mcu_msg.tim2 = timer_get_counter(TIM2);
-		mcu_msg.tim3 = timer_get_counter(TIM3);
-
-		v_1 = vout_to_dac(pid( mcu_msg.target1, mcu_msg.tim1, &pid1));
-		v_2 = vout_to_dac(pid( mcu_msg.target2, mcu_msg.tim2, &pid2));
-		v_3 = vout_to_dac(pid( mcu_msg.target3, mcu_msg.tim3, &pid3));
-
+		_write(1, (char *)&mcu_msg, sizeof(mcu_msg_t));
+		gpio_toggle(GPIOC, GPIO14);
+		last_mcu_msg_time = system_millis;
 		
-	
 		if(zenom_msg.stop == 1){
 			dac_write(CHIP1, CH_V, vout_to_dac(0));
 			dac_write(CHIP2, CH_V, vout_to_dac(0));
 			dac_write(CHIP3, CH_V, vout_to_dac(0));
-		} else {
-			dac_write(CHIP1, CH_V, v_1);
-			dac_write(CHIP2, CH_V, v_2);
-			dac_write(CHIP3, CH_V, v_3);
+			gpio_clear(GPIOC, GPIO15);
+			pid1.err = 0;
+			pid2.err = 0;
+			pid3.err = 0;
 		}
-
-		mcu_msg.err1 = (uint16_t)(pid1.err*100.0f);
-		mcu_msg.err2 = (uint16_t)(pid2.err*100.0f);
-		mcu_msg.err3 = (uint16_t)(pid3.err*100.0f);
-
-		_write(1, (char *)&mcu_msg, sizeof(mcu_msg_t));
-		last_mcu_msg_time = system_millis;
-		gpio_toggle(GPIOC, GPIO14);
 
 		while(uart_rx_available()){
 			uint8_t sync1 = 0, sync2 = 0;

@@ -1,5 +1,10 @@
 #include "ring.h"
 
+/*
+ * TODO: convert mod operations to and. 
+ * When circular buffer size is power of 2 and op is same as mod.
+ */
+
 void ring_init(struct ring *ring, uint8_t *buf, ring_size_t size)
 {
 	ring->data = buf;

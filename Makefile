@@ -1,6 +1,7 @@
 DEVICE          = stm32f051r8t6
 OPENCM3_DIR     = /opt/libopencm3
 BINARY          = hapticZenom
+TYPE		= STM32F0
 
 SRCS            += test.c uart.c ring.c mcp492x.c
 INCLUDES        += -I.
