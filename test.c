@@ -281,9 +281,9 @@ typedef struct {
 	uint16_t target2;
 	uint16_t target3;
 
-	uint16_t err1;
-	uint16_t err2;
-	uint16_t err3;
+	float err1;
+	float err2;
+	float err3;
 } mcu_msg_t;
 
 typedef struct {
@@ -353,12 +353,12 @@ int main(void)
 	spi_setup();
 
 	//linear amplifier initial current and voltage setup
-	set_current(CHIP1, 3);
-	set_current(CHIP2, 3);
-	set_current(CHIP3, 3);
 	dac_write(CHIP1, CH_V, vout_to_dac(0));
 	dac_write(CHIP2, CH_V, vout_to_dac(0));
 	dac_write(CHIP3, CH_V, vout_to_dac(0));
+	set_current(CHIP1, 3);
+	set_current(CHIP2, 3);
+	set_current(CHIP3, 3);
 
 	uint8_t rx = 0;
 	uint8_t buff[64] = {0};
@@ -393,9 +393,9 @@ int main(void)
 			dac_write(CHIP3, CH_V, v_3);
 			gpio_set(GPIOC, GPIO15);
 
-			mcu_msg.err1 = (uint16_t)(pid1.err*100.0f);
-			mcu_msg.err2 = (uint16_t)(pid2.err*100.0f);
-			mcu_msg.err3 = (uint16_t)(pid3.err*100.0f);
+			mcu_msg.err1 = pid1.err;
+			mcu_msg.err2 = pid2.err;
+			mcu_msg.err3 = pid3.err;
 		}
 
 
@@ -411,6 +411,9 @@ int main(void)
 			pid1.err = 0;
 			pid2.err = 0;
 			pid3.err = 0;
+
+			angle = 60;
+			angle_time = 0;
 		}
 
 		while(uart_rx_available()){
@@ -425,18 +428,17 @@ int main(void)
 				memcpy(&zenom_msg, buff, sizeof(zenom_msg_t)); 
 				gpio_toggle(GPIOC, GPIO13);
 
-				pid1.kp = (float)(zenom_msg.kp1)/10.0f;
-				pid1.kd = (float)(zenom_msg.kd1)/10.0f;
-				pid1.ki = (float)(zenom_msg.ki1)/10.0f;
+				pid1.kp = (float)(zenom_msg.kp1)/100.0f;
+				pid1.kd = (float)(zenom_msg.kd1)/100.0f;
+				pid1.ki = (float)(zenom_msg.ki1)/100.0f;
 
-				pid2.kp = (float)(zenom_msg.kp2)/10.0f;
-				pid2.kd = (float)(zenom_msg.kd2)/10.0f;
-				pid2.ki = (float)(zenom_msg.ki2)/10.0f;
+				pid2.kp = (float)(zenom_msg.kp2)/100.0f;
+				pid2.kd = (float)(zenom_msg.kd2)/100.0f;
+				pid2.ki = (float)(zenom_msg.ki2)/100.0f;
 
-				pid3.kp = (float)(zenom_msg.kp3)/10.0f;
-				pid3.kd = (float)(zenom_msg.kd3)/10.0f;
-				pid3.ki = (float)(zenom_msg.ki3)/10.0f;
-
+				pid3.kp = (float)(zenom_msg.kp3)/100.0f;
+				pid3.kd = (float)(zenom_msg.kd3)/100.0f;
+				pid3.ki = (float)(zenom_msg.ki3)/100.0f;
 
 			}
 		}

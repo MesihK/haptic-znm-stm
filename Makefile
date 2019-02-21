@@ -1,14 +1,14 @@
 DEVICE          = stm32f051r8t6
+TYPE		= STM32F0
 OPENCM3_DIR     = /opt/libopencm3
 BINARY          = hapticZenom
-TYPE		= STM32F0
 
 SRCS            += test.c uart.c ring.c mcp492x.c
 INCLUDES        += -I.
 
-STFLASH			= $(shell which st-flash)
+STFLASH		= $(shell which st-flash)
 
-#ARCHFLAGS 		= -mthumb -mcpu=cortex-m0 -msoft-float
+#ARCHFLAGS 	= -mthumb -mcpu=cortex-m0 -msoft-float
 CFLAGS          += -std=c99  $(INCLUDES) -D$(TYPE)
 LDFLAGS         += -static -nostartfiles 
 LDLIBS          += -Wl,--start-group -lc -lm -lgcc -lnosys -Wl,--end-group 
@@ -16,8 +16,8 @@ LDLIBS          += -Wl,--start-group -lc -lm -lgcc -lnosys -Wl,--end-group
 include $(OPENCM3_DIR)/mk/genlink-config.mk
 include $(OPENCM3_DIR)/mk/gcc-config.mk
 
-#LDFLAGS 		+= -T$(LDSCRIPT) 
-OBJS 			= $(SRCS:.c=.o)
+#LDFLAGS 	+= -T$(LDSCRIPT) 
+OBJS 		= $(SRCS:.c=.o)
 
 .PHONY: clean all
 
