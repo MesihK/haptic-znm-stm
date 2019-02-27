@@ -337,9 +337,9 @@ int main(void)
 	mcu_msg.sync2 = 0xEFAA;
 	zenom_msg.sync = 0xABCD;
 
-	mcu_msg.target1 = angle_to_radian(310);
-	mcu_msg.target2 = angle_to_radian(310);
-	mcu_msg.target3 = angle_to_radian(310);
+	mcu_msg.target1 = angle_to_radian(20);
+	mcu_msg.target2 = angle_to_radian(20);
+	mcu_msg.target3 = angle_to_radian(20);
 
 	uint16_t v_1 = 0;
 	uint16_t v_2 = 0;
@@ -404,19 +404,19 @@ int main(void)
 			if(angle >= 180) angle = 0;
 
 			mcu_msg.target1 = angle_to_radian(sin(angle_to_radian(angle))*20) +
-				angle_to_radian(310);
+				angle_to_radian(20);
 			mcu_msg.target2 = angle_to_radian(sin(angle_to_radian(angle+30))*20) +
-				angle_to_radian(310);
+				angle_to_radian(20);
 			mcu_msg.target3 = angle_to_radian(sin(angle_to_radian(angle+60))*20) +
-				angle_to_radian(310);
+				angle_to_radian(20);
 
-			mcu_msg.tim1 = pulse_to_radian(timer_get_counter(TIM1), pid1);
-			mcu_msg.tim2 = pulse_to_radian(timer_get_counter(TIM2), pid2);
-			mcu_msg.tim3 = pulse_to_radian(timer_get_counter(TIM3), pid3);
+			mcu_msg.tim1 = pulse_to_radian((pid1.enc - timer_get_counter(TIM1)) % pid1.enc, pid1);
+			mcu_msg.tim2 = pulse_to_radian((pid2.enc - timer_get_counter(TIM2)) % pid2.enc, pid2);
+			mcu_msg.tim3 = pulse_to_radian((pid3.enc - timer_get_counter(TIM3)) % pid3.enc, pid3);
 
-			pid_res_1 = pid( mcu_msg.target1, mcu_msg.tim1, &pid1);
-			pid_res_2 = pid( mcu_msg.target2, mcu_msg.tim2, &pid2);
-			pid_res_3 = pid( mcu_msg.target3, mcu_msg.tim3, &pid3);
+			pid_res_1 = -1 * pid( mcu_msg.target1, mcu_msg.tim1, &pid1);
+			pid_res_2 = -1 * pid( mcu_msg.target2, mcu_msg.tim2, &pid2);
+			pid_res_3 = -1 * pid( mcu_msg.target3, mcu_msg.tim3, &pid3);
 
 			v_1 = vout_to_dac(pid_res_1);
 			v_2 = vout_to_dac(pid_res_2);
