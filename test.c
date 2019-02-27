@@ -213,7 +213,7 @@ void set_v(int chip, float v){
 
 
 
-#define eps (3.14/180)
+#define eps (3.14/1800)
 #define INTEGRAL_LIMIT 5
 typedef struct {
 	int enc;
@@ -255,7 +255,7 @@ float pid(float target, float curr, pid_param *param){
 	param->time = system_millis;
 
 	d1 = target - curr;
-	d2 = d1 - 2*3.14;
+	d2 = d1 + 2*3.14;
 	if(fabs(d2) >= fabs(d1)){
 		dir = 1;
 		err = d1;
@@ -405,14 +405,14 @@ int main(void)
 
 			mcu_msg.target1 = angle_to_radian(sin(angle_to_radian(angle))*20) +
 				angle_to_radian(20);
-			mcu_msg.target2 = angle_to_radian(sin(angle_to_radian(angle+30))*20) +
+			mcu_msg.target2 = angle_to_radian(sin(angle_to_radian(angle))*20) +
 				angle_to_radian(20);
-			mcu_msg.target3 = angle_to_radian(sin(angle_to_radian(angle+60))*20) +
+			mcu_msg.target3 = angle_to_radian(sin(angle_to_radian(angle))*20) +
 				angle_to_radian(20);
 
-			mcu_msg.tim1 = pulse_to_radian((pid1.enc - timer_get_counter(TIM1)) % pid1.enc, pid1);
-			mcu_msg.tim2 = pulse_to_radian((pid2.enc - timer_get_counter(TIM2)) % pid2.enc, pid2);
-			mcu_msg.tim3 = pulse_to_radian((pid3.enc - timer_get_counter(TIM3)) % pid3.enc, pid3);
+			mcu_msg.tim1 = pulse_to_radian((pid1.enc - timer_get_counter(TIM1)), pid1);
+			mcu_msg.tim2 = pulse_to_radian((pid2.enc - timer_get_counter(TIM2)), pid2);
+			mcu_msg.tim3 = pulse_to_radian((pid3.enc - timer_get_counter(TIM3)), pid3);
 
 			pid_res_1 = -1 * pid( mcu_msg.target1, mcu_msg.tim1, &pid1);
 			pid_res_2 = -1 * pid( mcu_msg.target2, mcu_msg.tim2, &pid2);
@@ -432,7 +432,7 @@ int main(void)
 			mcu_msg.err3 = pid3.err;
 
 			snd_cntr++;
-			if(snd_cntr >= 2){
+			if(snd_cntr >= 3){
 				_write(1, (char *)&mcu_msg, sizeof(mcu_msg_t));
 				gpio_toggle(GPIOC, GPIO14);
 				snd_cntr = 0;
