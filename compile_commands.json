@@ -1,22 +1,22 @@
 [
     {
         "command": "cc -c -std=c99 -I. -DSTM32F0 -DSTM32F0 -DSTM32F051R8T6 -I/opt/libopencm3/include -mcpu=cortex-m0 -mthumb -msoft-float -o test.o test.c",
-        "directory": "/home/mesih/workspace/haptic-stm",
-        "file": "/home/mesih/workspace/haptic-stm/test.c"
+        "directory": "/home/mesih/workspace/haptic-znm-stm",
+        "file": "/home/mesih/workspace/haptic-znm-stm/test.c"
     },
     {
         "command": "cc -c -std=c99 -I. -DSTM32F0 -DSTM32F0 -DSTM32F051R8T6 -I/opt/libopencm3/include -mcpu=cortex-m0 -mthumb -msoft-float -o uart.o uart.c",
-        "directory": "/home/mesih/workspace/haptic-stm",
-        "file": "/home/mesih/workspace/haptic-stm/uart.c"
+        "directory": "/home/mesih/workspace/haptic-znm-stm",
+        "file": "/home/mesih/workspace/haptic-znm-stm/uart.c"
     },
     {
         "command": "cc -c -std=c99 -I. -DSTM32F0 -DSTM32F0 -DSTM32F051R8T6 -I/opt/libopencm3/include -mcpu=cortex-m0 -mthumb -msoft-float -o ring.o ring.c",
-        "directory": "/home/mesih/workspace/haptic-stm",
-        "file": "/home/mesih/workspace/haptic-stm/ring.c"
+        "directory": "/home/mesih/workspace/haptic-znm-stm",
+        "file": "/home/mesih/workspace/haptic-znm-stm/ring.c"
     },
     {
         "command": "cc -c -std=c99 -I. -DSTM32F0 -DSTM32F0 -DSTM32F051R8T6 -I/opt/libopencm3/include -mcpu=cortex-m0 -mthumb -msoft-float -o mcp492x.o mcp492x.c",
-        "directory": "/home/mesih/workspace/haptic-stm",
-        "file": "/home/mesih/workspace/haptic-stm/mcp492x.c"
+        "directory": "/home/mesih/workspace/haptic-znm-stm",
+        "file": "/home/mesih/workspace/haptic-znm-stm/mcp492x.c"
     }
 ]

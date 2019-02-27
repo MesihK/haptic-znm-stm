@@ -213,7 +213,8 @@ void set_v(int chip, float v){
 
 
 
-#define eps (1/360)
+#define eps (3.14/180)
+#define INTEGRAL_LIMIT 5
 typedef struct {
 	int enc;
 	float err;
@@ -224,11 +225,27 @@ typedef struct {
 	float kd;
 } pid_param;
 
+float pulse_to_radian(uint16_t pulse, pid_param pid){
+	return (float)(pulse)/(float)(pid.enc)*3.14*2;
+}
+
+float angle_to_radian(float angle){
+	return angle/180.0*3.14;
+}
+
+float radian_to_angle(float rad){
+	return rad/3.14*180.0;
+}
+
+float pulse_to_angle(uint16_t pulse, pid_param pid){
+	return radian_to_angle(pulse_to_radian(pulse, pid));
+}
+
 pid_param pid1 = {0};
 pid_param pid2 = {0};
 pid_param pid3 = {0};
 
-float pid(int target, int curr, pid_param *param){
+float pid(float target, float curr, pid_param *param){
 	int dir = 1;
 	float err, d1, d2 = 0;
 	float d;
@@ -238,7 +255,7 @@ float pid(int target, int curr, pid_param *param){
 	param->time = system_millis;
 
 	d1 = target - curr;
-	d2 = d1 - param->enc;
+	d2 = d1 - 2*3.14;
 	if(fabs(d2) >= fabs(d1)){
 		dir = 1;
 		err = d1;
@@ -248,9 +265,12 @@ float pid(int target, int curr, pid_param *param){
 		dir = -1;
 	}
 
-	err = err / param->enc;
+	//err = err / param->enc;
 	if(fabs(err) > eps){
 		param->integral = param->integral + err*dt;
+
+		if(param->integral > INTEGRAL_LIMIT) param->integral = INTEGRAL_LIMIT;
+		if(param->integral < -1*INTEGRAL_LIMIT) param->integral = -1*INTEGRAL_LIMIT;
 	}
 	if(dt != 0){
 		d = (err - param->err) / dt;
@@ -271,15 +291,16 @@ float pid(int target, int curr, pid_param *param){
 
 #pragma pack(push, 1)
 typedef struct {
-	uint16_t sync;
+	uint16_t sync1;
+	uint16_t sync2;
 
-	uint16_t tim1;
-	uint16_t tim2;
-	uint16_t tim3;
+	float tim1;
+	float tim2;
+	float tim3;
 
-	uint16_t target1;
-	uint16_t target2;
-	uint16_t target3;
+	float target1;
+	float target2;
+	float target3;
 
 	float err1;
 	float err2;
@@ -289,17 +310,17 @@ typedef struct {
 typedef struct {
 	uint16_t sync;
 
-	uint16_t kp1;
-	uint16_t kp2;
-	uint16_t kp3;
+	float kp1;
+	float kp2;
+	float kp3;
 
-	uint16_t kd1;
-	uint16_t kd2;
-	uint16_t kd3;
+	float kd1;
+	float kd2;
+	float kd3;
 
-	uint16_t ki1;
-	uint16_t ki2;
-	uint16_t ki3;
+	float ki1;
+	float ki2;
+	float ki3;
 
 	uint16_t stop;
 } zenom_msg_t;
@@ -312,12 +333,13 @@ zenom_msg_t zenom_msg = {0};
 int main(void)
 {
 	mcu_msg_t mcu_msg;
-	mcu_msg.sync = 0xABCD;
+	mcu_msg.sync1 = 0xABCD;
+	mcu_msg.sync2 = 0xEFAA;
 	zenom_msg.sync = 0xABCD;
 
-	mcu_msg.target1 = 60*(M1_ENC/360);
-	mcu_msg.target2 = 60*(M1_ENC/360);
-	mcu_msg.target3 = 60*(M1_ENC/360);
+	mcu_msg.target1 = angle_to_radian(310);
+	mcu_msg.target2 = angle_to_radian(310);
+	mcu_msg.target3 = angle_to_radian(310);
 
 	uint16_t v_1 = 0;
 	uint16_t v_2 = 0;
@@ -328,17 +350,17 @@ int main(void)
 	pid3.enc = M3_ENC;
 
 
-	pid1.kp = 20.0f;
-	pid1.kd = 2.0f;
-	pid1.ki = 70.0f;
+	pid1.kp = 7.0f;
+	pid1.kd = 1.0f;
+	pid1.ki = 20.0f;
 
-	pid2.kp = 20.0f;
-	pid2.kd = 2.0f;
-	pid2.ki = 70.0f;
+	pid2.kp = 7.0f;
+	pid2.kd = 1.0f;
+	pid2.ki = 20.0f;
 
-	pid3.kp = 20.0f;
-	pid3.kd = 2.0f;
-	pid3.ki = 70.0f;
+	pid3.kp = 7.0f;
+	pid3.kd = 1.0f;
+	pid3.ki = 20.0f;
 
 	double angle = 90;
 	int angle_time = 0;
@@ -346,7 +368,7 @@ int main(void)
 	clock_setup();
 	systick_setup();
 	gpio_setup();
-	usart_setup(460800);
+	usart_setup(460800*2);
 	//adc_setup();
 	//dac_setup();
 	tim_setup();
@@ -356,37 +378,49 @@ int main(void)
 	dac_write(CHIP1, CH_V, vout_to_dac(0));
 	dac_write(CHIP2, CH_V, vout_to_dac(0));
 	dac_write(CHIP3, CH_V, vout_to_dac(0));
-	set_current(CHIP1, 3);
-	set_current(CHIP2, 3);
-	set_current(CHIP3, 3);
+	set_current(CHIP1, 2);
+	set_current(CHIP2, 2);
+	set_current(CHIP3, 2);
 
 	uint8_t rx = 0;
 	uint8_t buff[64] = {0};
 	int state = 0;
 	uint32_t last_mcu_msg_time = 0;
+	uint16_t snd_cntr=0;
 	zenom_msg.stop = 1;
+
+	float pid_res_1 = 0;
+	float pid_res_2 = 0;
+	float pid_res_3 = 0;
 
 	while(1)
 	{
 		if(zenom_msg.stop == 0){
 			angle_time++;
 			if(angle_time >= 1){
-				angle = angle + 0.02f;
+				angle = angle + 0.08f;
 				angle_time = 0;
 			}
 			if(angle >= 180) angle = 0;
 
-			mcu_msg.target1 = sin(angle*3.14/180.0f)*400 + 3150;
-			mcu_msg.target2 = sin(angle*3.14/180.0f)*400 + 3150;
-			mcu_msg.target3 = sin(angle*3.14/180.0f)*400 + 3150;
+			mcu_msg.target1 = angle_to_radian(sin(angle_to_radian(angle))*20) +
+				angle_to_radian(310);
+			mcu_msg.target2 = angle_to_radian(sin(angle_to_radian(angle+30))*20) +
+				angle_to_radian(310);
+			mcu_msg.target3 = angle_to_radian(sin(angle_to_radian(angle+60))*20) +
+				angle_to_radian(310);
 
-			mcu_msg.tim1 = timer_get_counter(TIM1);
-			mcu_msg.tim2 = timer_get_counter(TIM2);
-			mcu_msg.tim3 = timer_get_counter(TIM3);
+			mcu_msg.tim1 = pulse_to_radian(timer_get_counter(TIM1), pid1);
+			mcu_msg.tim2 = pulse_to_radian(timer_get_counter(TIM2), pid2);
+			mcu_msg.tim3 = pulse_to_radian(timer_get_counter(TIM3), pid3);
 
-			v_1 = vout_to_dac(pid( mcu_msg.target1, mcu_msg.tim1, &pid1));
-			v_2 = vout_to_dac(pid( mcu_msg.target2, mcu_msg.tim2, &pid2));
-			v_3 = vout_to_dac(pid( mcu_msg.target3, mcu_msg.tim3, &pid3));
+			pid_res_1 = pid( mcu_msg.target1, mcu_msg.tim1, &pid1);
+			pid_res_2 = pid( mcu_msg.target2, mcu_msg.tim2, &pid2);
+			pid_res_3 = pid( mcu_msg.target3, mcu_msg.tim3, &pid3);
+
+			v_1 = vout_to_dac(pid_res_1);
+			v_2 = vout_to_dac(pid_res_2);
+			v_3 = vout_to_dac(pid_res_3);
 
 			dac_write(CHIP1, CH_V, v_1);
 			dac_write(CHIP2, CH_V, v_2);
@@ -396,12 +430,18 @@ int main(void)
 			mcu_msg.err1 = pid1.err;
 			mcu_msg.err2 = pid2.err;
 			mcu_msg.err3 = pid3.err;
+
+			snd_cntr++;
+			if(snd_cntr >= 2){
+				_write(1, (char *)&mcu_msg, sizeof(mcu_msg_t));
+				gpio_toggle(GPIOC, GPIO14);
+				snd_cntr = 0;
+			}
 		}
 
-
-		_write(1, (char *)&mcu_msg, sizeof(mcu_msg_t));
-		gpio_toggle(GPIOC, GPIO14);
 		last_mcu_msg_time = system_millis;
+
+
 		
 		if(zenom_msg.stop == 1){
 			dac_write(CHIP1, CH_V, vout_to_dac(0));
@@ -411,6 +451,10 @@ int main(void)
 			pid1.err = 0;
 			pid2.err = 0;
 			pid3.err = 0;
+
+			pid1.integral = 0;
+			pid2.integral = 0;
+			pid3.integral = 0;
 
 			angle = 60;
 			angle_time = 0;
@@ -428,18 +472,17 @@ int main(void)
 				memcpy(&zenom_msg, buff, sizeof(zenom_msg_t)); 
 				gpio_toggle(GPIOC, GPIO13);
 
-				pid1.kp = (float)(zenom_msg.kp1)/100.0f;
-				pid1.kd = (float)(zenom_msg.kd1)/100.0f;
-				pid1.ki = (float)(zenom_msg.ki1)/100.0f;
+				pid1.kp = zenom_msg.kp1;
+				pid1.kd = zenom_msg.kd1;
+				pid1.ki = zenom_msg.ki1;
 
-				pid2.kp = (float)(zenom_msg.kp2)/100.0f;
-				pid2.kd = (float)(zenom_msg.kd2)/100.0f;
-				pid2.ki = (float)(zenom_msg.ki2)/100.0f;
+				pid2.kp = zenom_msg.kp2;
+				pid2.kd = zenom_msg.kd2;
+				pid2.ki = zenom_msg.ki2;
 
-				pid3.kp = (float)(zenom_msg.kp3)/100.0f;
-				pid3.kd = (float)(zenom_msg.kd3)/100.0f;
-				pid3.ki = (float)(zenom_msg.ki3)/100.0f;
-
+				pid3.kp = zenom_msg.kp3;
+				pid3.kd = zenom_msg.kd3;
+				pid3.ki = zenom_msg.ki3;
 			}
 		}
 
